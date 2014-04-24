@@ -1,0 +1,410 @@
+% Document type and font specification
+\documentclass[11pt]{article}
+
+% Margin specification
+% Check http://en.wikibooks.org/wiki/LaTeX/Page_Layout for more info
+\usepackage[margin = 1in]{geometry}
+\usepackage[nottoc,notlof,notlot,numbib]{tocbibind}
+
+% Some misc and math packages
+% Check http://en.wikibooks.org/wiki/LaTeX/Mathematics for more info
+\usepackage{fancyhdr}
+\usepackage{manfnt}
+\usepackage{pgf}
+\usepackage{amsmath,amsthm,amssymb,graphicx}
+\usepackage{amsfonts}
+\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+\usepackage{bbm}
+\usepackage{float}
+\usepackage{mathrsfs} %mathscr{A}
+\usepackage{hyperref,graphicx}
+
+% Bibliography
+\usepackage[style=numeric,firstinits=true]{biblatex}
+% Specify bib files
+\addbibresource{biblio.bib}
+
+% Color
+\usepackage{color}
+
+% For specifying the counter style of enumerate
+\usepackage{enumerate}
+
+% Page style definition
+\pagestyle{fancy}
+% Customize this to your liking.
+\lhead{HW2}\chead{}\rhead{By \myurlshort{http://biostat.jhsph.edu/~lcollado/}{L. Collado-Torres}}\lfoot{}\cfoot{\thepage}\rfoot{\today}
+
+% Line space
+\usepackage{setspace}
+% Default is normal, but un-comment below to your liking
+% \onehalfspacing
+% \doublespacing
+
+% Caption and figure def
+% Check http://en.wikibooks.org/wiki/LaTeX/Floats,_Figures_and_Captions for more info
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{wrapfig}
+
+% Math theorems shortcuts
+% Check http://en.wikibooks.org/wiki/LaTeX/Theorems for more info
+\usepackage{mathtools}
+\newtheorem{thm}{Theorem}
+\newtheorem{lem}{Lemma}[thm]
+\newtheorem{cor}{Corollary}[thm]
+\newtheorem{defi}{Definition}
+\newtheorem{conj}{Conjecture}
+\newtheorem{prop}{Proposition}
+\newtheorem{ex}{Example}
+\newtheorem{claim}{Claim}
+\newtheorem{fact}{Fact}
+\renewcommand{\qedsymbol}{$\blacksquare$}
+
+% Some inherited commands
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\newcommand{\myurlshort}[2]{\href{#1}{\textcolor{gray}{\textsf{#2}}}}
+
+% knitr options
+<<setup, include=FALSE, cache=FALSE>>=
+# set global chunk options
+opts_chunk$set(fig.path='fig-', fig.align='center', fig.show='hold', fig.width=7, fig.height=7, out.width='.6\\linewidth', out.height='.3\\linewidth', cache=FALSE)
+options(width=90)
+@
+
+
+\begin{document}
+
+%\begin{titlepage}
+\begin{center}
+
+% Actual title
+{ \bfseries Partially reproducing \emph{The Cerebral Microvasculature in Schizophrenia}}\\%[0.3cm]
+\textsc{Statistics for Genomics 140.688}\\
+\normalsize
+\end{center}
+% \end{titlepage}
+
+%%%%%%%%%% Write document %%%%%%%%%%%%%%
+
+<<loadData, echo=FALSE, warning=FALSE, message=FALSE>>=
+## Libs used in analysis, for session info
+library("GEOquery")
+library("hgu133plus2cdf")
+library("affy")
+library("affyQCReport")
+library("limma")
+library("hgu133plus2.db")
+
+## Load data
+load("table-results.Rdata")
+
+@
+
+\section*{Description}
+
+Genome wide association studies have found that a pool of around 100 genes have low associations with schizophrenia and overlap bipolar disorder \parencite{international_schizophrenia_consortium_common_2009}. However, finding expression differences between schizophrenia patients and controls is a complicated task, in part given the population diversity and weak signal. A study using microarrays was performed comparing two cell types as well as control, schizophrenia and bipolar disorder patients \parencite{harris_cerebral_2008}. They validated their biological findings using 12 known cell differentiators between endothelia and neuronal cells. But failed to find any genes differentially expressed between control and schizophrenia groups.
+
+\section*{Methods}
+
+Data was downloaded from NCBI GEO (accession: \texttt{GSE12679}) using \texttt{GEOquery} \parencite{geo} for all 32 samples. The raw data was analyzed in \texttt{R} \parencite{r} using \texttt{affy} \parencite{affy} using the appropriate array information \parencite{cdf, db}. Exploration of the raw data was performed using \texttt{allyQCReport} \parencite{qc}. After RMA normalization, differential expression was performed using \texttt{limma} \parencite{limma} with a design matrix using the cell type, age, gender, group membership (control, bipolar, schizophrenia), and the post mortem interval (PMI). 
+
+\section*{Pre-processing}
+
+
+The raw data was explored with \texttt{affy} \parencite{affy}. Some heterogeneity was observed as expected, with the clear outlier being sample 2 as a finger print can be seen as shown in figure \ref{fig:finger}.
+
+Intensity values were explored with \texttt{affyQCReport} \parencite{qc}, revealing distributional differences as observed in figure \ref{fig:signal}. The QC report revealed array differences in positive and negative border elements (see \texttt{qcReport.pdf} page 3).
+
+Further exploration of array 2 with an MA plot versus the pseudo-median reference reveals a large difference as shown in \ref{fig:ma} as the loess curve spans negative M values. Thus, it is crucial to normalize the data. Further exploration (data not shown, but code included) revealed that normalizing the data improved the loess curve in the MA plot as it was symmetric around 0.
+
+RMA was used to perform quantile normalization and background correction.
+
+
+
+\begin{figure}[ht!]
+  \centering
+    \includegraphics[width=0.3\textwidth]{image-2.png}
+  \caption{Reconstructed image for sample 2. A fingerprint is clearly noticeable.}
+  \label{fig:finger}
+\end{figure}
+
+
+
+\begin{figure}[ht!]
+  \centering
+    \includegraphics[width=0.5\textwidth]{signalDist}
+  \caption{(Top) Log2 intensity distributions. There are clear differences, in particular between the first 4 arrays and the rest. (Bottom) Log intensity densities. Arrays group together into approximately 4 groups (3 clear, one diffused).}
+  \label{fig:signal}
+\end{figure}
+
+\begin{figure}[ht!]
+  \centering
+    \includegraphics[width=0.3\textwidth]{maPlots-002}
+  \caption{MA plot for raw data from array 2 versus the pseudo-median reference chip. Lowess line shown in red is considerably away from M = 0.}
+  \label{fig:ma}
+\end{figure}
+
+\section*{Differential expression}
+
+Differential expression was performed with \texttt{limma} \parencite{limma} using all 32 samples and a model as follows:
+
+\tiny
+\[ Y = \beta_0 + \beta_1 I\left(\text{Cell = neuronal}\right) + \beta_2 \text{Age} + \beta_3 I \left(\text{Gender = male} \right) + \beta_4 I \left(\text{Group = bipolar}\right) + \beta_5 I\left(\text{Group = schizophrenia}\right) + \beta_6 \text{PMI} \]
+\normalsize
+
+Empirical Bayes was then used to compute moderated statistics and p-values were adjusted for FDR control using the Benjamini-Hochberg method. Top genes were retrieved for coefficients $\beta_1$ (cell type), $\beta_3$ (gender), $\beta_4$ and $\beta_6$ (group).
+
+%% Doesn't seem as useful as I originally thought.
+%\begin{figure}[ht!]
+%  \centering
+%    \includegraphics[width=0.3\textwidth]{volcanoPlots-001}
+%  \caption{P-value volcano plot for the cell type coefficient with top 5 probes highlighted. The distribution is asymmetric around log FC of 0 with a higher log odds values for low positive log FC.}
+%  \label{fig:volcano}
+%\end{figure}
+
+<<table, results="asis", echo=FALSE>>=
+## For printing
+library("xtable")
+
+## Combine results
+tableS$status <- NA
+tableG$status <- NA
+compLit$SYMBOL <- select(hgu133plus2.db, rownames(compLit), c("SYMBOL"), "PROBEID")$SYMBOL
+
+res <- rbind(compLit, tableG, tableS)
+res$question <- rep(c("cell type", "gender", "schizophrenia"), c(nrow(compLit), nrow(tableG), nrow(tableS)))
+
+## Print out
+res2 <- cbind("probe" = rownames(res), res[,-c(4, 6)])
+rownames(res2) <- seq_len(nrow(res2))
+print.xtable(xtable(res2, label = "tab1", display = c("d", "s", "f", "f", "f", "E", "s", "s", "s"),
+    caption = "Top genes for cell type, gender and schizophrenia vs control coefficients. Status column shows which cell type is expected to be up-regulated based on previous literature, with only OTUB1 mismatching the expected logFC direction. Gender results identify known gender-related genes. Schizophrenia vs control only identified one gene. P-values are FDR controlled by BH."),
+    size="tiny", table.placement="ht!")
+@
+
+
+
+\section*{Biological conclusions}
+
+Table \ref{tab1} shows the that 6 out of the 12 genes known to differentiate cell types were included in the \Sexpr{nrow(table)} DE genes between cell types with FDR $<$ 0.05. The observed fold changes match in 5 out of 6 cases the expected direction.
+
+Similarly, table \ref{tab1} shows the only 7 probes to be differentially expressed between genders with FDR $<$ 0.10. These probes correspond to genes XIST, DDX3Y, and LINC01120 with the first two having known gender-related functions \parencite{rebhan_genecards:_1997}. Thus both sub-analyses biologically validate the results.
+
+When comparing the control vs bipolar groups, 0 genes were found to be differentially expressed at FDR $<$ 0.10. A single gene, TEX10, was found to be DE for control vs schizophrenia in contrast to the previous analysis \parencite{harris_cerebral_2008}. While TEX10 stands for \emph{testis expressed 10}, more recent work \parencite{castle_las1l_2012} has found that when depleted it leads to p53-dependent G1 arrest and in general is involved in the regulation of the ribosome biogenesis. Further validation is needed to evaluate the relation of TEX10 in schizophrenia, or to discard it.
+
+In particular, a recent study \parencite{pietersen_molecular_2014} found 1331 genes as differentially expressed between control and schizophrenia samples in neuron cells (9 samples per group). Their DE gene list is currently not available (it is a April 10 2014 pre-print) so we cannot check if TEX10 is present in their list. Nevertheless, their results could in theory be reproduced using NCBI GEO \texttt{GSE37981} in future work.
+
+
+\section*{Reproducibility}
+
+The code, main results, and main plots are available at \url{https://github.com/lcolladotor/hw2_140.688}.
+
+
+% For references, uncomment and remember to use the following series
+% when compling the pdf:
+% R Sweave, pdflatex, bibtex, pdflatex, pdflatex, open pdf
+
+
+
+\newpage
+\printbibliography
+
+Some useful links:
+
+\begin{itemize}
+\item \url{http://www.genecards.org/cgi-bin/carddisp.pl?gene=XIST}
+\item \url{http://www.genecards.org/cgi-bin/carddisp.pl?gene=DDX3Y}
+\item \url{http://www.genecards.org/cgi-bin/carddisp.pl?gene=TEX10}
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\appendix
+
+\section{Analysis code}
+
+
+\tiny
+<<analysis, eval=FALSE>>=
+##### Analysis code ######
+
+## Attempted data sets:
+# GSE11800
+# GSE30272
+# GSE25673
+
+## Get data from GEO
+library("GEOquery")
+geo <- getGEO("GSE12679")
+geo.files <- getGEOSuppFiles("GSE12679")
+save(geo, file="geo.Rdata")
+
+## Manually un-tar the RAW data
+
+## Load into R using the download pheno data
+files <- list.files("GSE12679/GSE12679_RAW", full.names = TRUE)
+library("affy")
+Data <- ReadAffy(filenames = files, phenoData = phenoData(geo[[1]]))
+save(Data, file="Data.Rdata")
+
+## Briefly explore the data summary
+library("hgu133plus2cdf")
+Data
+
+## Create a QC report
+library("affyQCReport")
+QCReport(Data, file = "qcReport.pdf")
+
+pdf("signalDist.pdf")
+signalDist(Data)
+dev.off()
+
+## Visually explore the data using functions from the affy package
+image(Data)
+## Results
+# ok: 1, 3:11, 13:15, 17, 19, 21:28, 31:32
+# fingerprint: 2
+# maybe a fingerprint: 18, 29
+# slightly brighter: 12, 16, 20
+png("image-2.png")
+image(Data[, 2])
+dev.off()
+
+pdf("maPlots-%03d.pdf", onefile=FALSE)
+MAplot(Data, plot.method = "smoothScatter")
+dev.off()
+# number 2 is one of the most different ones vs pseudo median chip
+
+## Not useful since there are too many reps
+if(FALSE) {
+    pdf("maPlot-pairs.pdf", width=14, height=14)
+    MAplot(Data, pairs = TRUE, plot.method = "smoothScatter")
+    dev.off()
+}
+
+
+## PM intensities
+raw <- pm(Data)
+log.raw <- log2(raw)
+
+## Explore QN
+qn <- preprocessCore::normalize.quantiles(log.raw)
+
+## MA plot for sample 1 vs 2, then again after QN
+
+pdf("maPlots-pair1-%03d.pdf", onefile=FALSE)
+lapply(list(log.raw, qn), function(dat) {
+    avg  <- (dat[, 1] + dat[, 2])/2
+    diff <-  dat[, 1] - dat[, 2]
+    
+    lowess.curve <- lowess(x = avg, y = diff, f = 0.05,)
+    smoothScatter(avg, diff, ylim = c(-6, 6), xlab="Average expression (log2)", ylab="Expression ratio (log2)", main="Sample 1 vs 2")
+    abline(h=0,col="deepskyblue3", lwd=4)
+    lines(lowess.curve, col = "deeppink3", lwd = 4)
+})
+dev.off()
+
+## Perform RMA
+eset <- rma(Data)
+e <- exprs(eset)
+save(e, eset, file="rma.Rdata")
+
+## Obtain characteristics of interest
+pd <- pData(Data)
+pd.char <- as.character(pd$characteristics_ch1)
+chars <- data.frame(
+        "CellType" = factor(gsub("(Cell type: )|(,.*)", "", pd.char)),
+        "Age" = as.numeric(gsub("(.*age:)|(, gender.*)", "", pd.char)),
+        "Gender" = factor(gsub("(.*gender:)|(,.*)", "", pd.char)),
+        "Group" = relevel(factor(gsub("(.*group: )|(,.*)", "", pd.char)), "control"),
+        "PMI" = as.numeric(gsub("(.*PMI:)|(h)", "", pd.char))
+    )
+    
+
+## Differential expression
+design.matrix <- with(chars, model.matrix(~CellType + Age + Gender + Group + PMI))
+library("limma")
+fit <- lmFit(object = e, design = design.matrix)
+eFit <- eBayes(fit)
+save(fit, eFit, design.matrix, file="fits.Rdata")
+
+## Explore resulting p-values
+pdf("pvalues-dist-%03d.pdf", onefile=FALSE)
+for(i in 2:7) {
+    hist(eFit$p.value[, i], main=paste("P-value distribution for", colnames(fit$coefficients)[i]), xlab="p-values")
+}
+dev.off()
+
+pdf("volcanoPlots-%03d.pdf", onefile=FALSE)
+for(i in 2:7) {
+    volcanoplot(eFit, coef=i, main=paste("Volcano plot for", colnames(fit$coefficients)[i]), highlight = 5)
+}
+dev.off()
+
+
+## Get top genes
+library("hgu133plus2.db")
+columns(hgu133plus2.db)
+
+table <- topTable(eFit, coef = 2, adjust.method="BH", p.value = 0.05, number=1000)
+
+## Explore top genes
+head(table)
+
+probeNames <- rownames(table)
+info <- select(hgu133plus2.db, probeNames, c("SYMBOL", "ALIAS"), "PROBEID")
+
+previous <- data.frame(alias = c("FN1", "SPARC", "ITGAV", "CDH5", "EPAS1", "GJA4", "L1CAM", "SNAP25", "SYP", "SCN3B", "SLC17A7", "THY1"),
+    status = rep(c("endothelial", "neuronal"), each=6))
+compLit <- cbind(table[match(previous$alias, info$ALIAS), ], "status" = previous$status)
+compLit <- compLit[!is.na(compLit$t),]
+## Not completely matching published results
+# Using only the control samples and a model matrix testing cell type leads to only two results matching.
+# The difference must lie in the normalizations used.
+
+
+tableB <- topTable(eFit, coef = 5, adjust.method="BH", p.value = 0.10, number=1000)
+dim(tableB)
+# 0
+
+tableG <- topTable(eFit, coef = 4, adjust.method="BH", p.value = 0.10, number=1000)
+dim(tableG)
+tableG$SYMBOL <- select(hgu133plus2.db, rownames(tableG), c("SYMBOL"), "PROBEID")$SYMBOL
+tableG
+## 3 genes, 2 of which make sense. The other one needs more bio info.
+# http://www.genecards.org/cgi-bin/carddisp.pl?gene=XIST
+# http://www.genecards.org/cgi-bin/carddisp.pl?gene=DDX3Y
+# http://www.ncbi.nlm.nih.gov/gene?Db=gene&Cmd=DetailsSearch&Term=389043
+
+tableS <- topTable(eFit, coef = 6, adjust.method="BH", p.value = 0.10, number=1000)
+dim(tableS)
+tableS$SYMBOL <- select(hgu133plus2.db, rownames(tableS), c("SYMBOL"), "PROBEID")$SYMBOL
+tableS
+## One hit. But it's unclear whether it's bio related.
+# http://www.genecards.org/cgi-bin/carddisp.pl?gene=TEX10
+
+save(info, probeNames, previous, compLit, table, tableB, tableG, tableS, file="table-results.Rdata")
+@
+
+\section{Report code}
+
+
+\tiny
+<<rCode, results="hide", fig.show="hide", warning=FALSE>>=
+<<loadData>>
+<<table>>
+@
+
+
+\section{Session information}
+
+% Uncomment if you want to add the R session information
+\tiny
+<<info, results='asis', echo = FALSE>>=
+toLatex(sessionInfo())
+@
+
+
+
+\end{document}

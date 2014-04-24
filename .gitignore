@@ -1,0 +1,11 @@
+## Ignore raw data, large output files and latex files
+Data.Rdata
+GSE12679/
+fits.Rdata
+geo.Rdata
+hw2-blx.bib
+hw2.bbl
+hw2.blg
+hw2.run.xml
+hw2.tex
+rma.Rdata
